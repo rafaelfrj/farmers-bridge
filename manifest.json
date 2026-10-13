@@ -1,0 +1,2 @@
+{"name":"Farmer's Bridge","short_name":"Farmer's Bridge","start_url":"/","display":"standalone","orientation":"portrait","background_color":"#1d3a2a","theme_color":"#1d3a2a",
+"icons":[{"src":"/icon-192.png","sizes":"192x192","type":"image/png","purpose":"any maskable"},{"src":"/icon-512.png","sizes":"512x512","type":"image/png","purpose":"any maskable"}]}
