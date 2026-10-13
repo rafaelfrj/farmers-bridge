@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="pt-BR"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Farmer's Bridge</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,800&family=Nunito:wght@500;700&display=swap" rel="stylesheet">
+<style>
+:root{--felt:#1d3a2a;--felt2:#142a1e;--straw:#e9c46a;--barn:#b5392b;--paper:#fbf6e9;--ink:#1b1b1b;--mute:#a9bcae}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;background:radial-gradient(ellipse at 50% 30%,var(--felt),var(--felt2));color:var(--paper);font:500 16px/1.4 Nunito,system-ui,sans-serif}
+h1,h2{font-family:Fraunces,Georgia,serif;margin:0 0 .5em}
+h1{font-size:2.6rem;font-weight:800;color:var(--straw);line-height:1}
+.screen{display:none;max-width:520px;margin:0 auto;padding:max(24px,env(safe-area-inset-top)) 20px 32px}
+.screen.on{display:block}
+#game.on{max-width:960px;padding:12px 10px 0}
+input,button{font:inherit;border-radius:12px;border:0}
+input{width:100%;padding:14px;margin:6px 0;background:var(--paper);color:var(--ink)}
+.code-in{text-align:center;font:800 2rem Fraunces,serif;letter-spacing:.3em;text-transform:uppercase}
+button{padding:14px 18px;font-weight:700;background:var(--straw);color:var(--ink);cursor:pointer}
+button.sec{background:#ffffff1c;color:var(--paper)}
+button:disabled{opacity:.4;cursor:not-allowed}
+button.big{width:100%;margin:8px 0;padding:18px;font-size:1.1rem}
+.row{display:flex;gap:8px}.row>*{flex:1}
+.err{color:#ffb4a8;min-height:1.4em}
+.codebox{font:800 3.4rem Fraunces,serif;letter-spacing:.2em;text-align:center;background:#0003;border-radius:16px;padding:12px;margin:12px 0;color:var(--straw)}
+.plist{list-style:none;padding:0}.plist li{padding:10px 14px;margin:6px 0;border-radius:10px;background:#ffffff14;display:flex;justify-content:space-between}
+.off{opacity:.45}
+/* mesa */
+.top{display:flex;justify-content:space-between;align-items:center;font-size:.9rem;color:var(--mute)}
+.timer{font:800 1.4rem Fraunces,serif;color:var(--straw);min-width:2.5em;text-align:right}
+.timer.low{color:#ff8a78}
+.seats{display:flex;gap:6px;overflow-x:auto;padding:8px 0}
+.seat{flex:1;min-width:92px;padding:8px;border-radius:12px;background:#ffffff12;text-align:center;font-size:.85rem;border:2px solid transparent}
+.seat.turn{border-color:var(--straw);background:#e9c46a22}
+.seat b{display:block;font-size:.95rem;overflow:hidden;text-overflow:ellipsis}
+.seat small{color:var(--mute)}
+.table{min-height:190px;display:flex;flex-wrap:wrap;gap:14px;justify-content:center;align-items:center;margin:10px 0;padding:14px;border-radius:24px;background:#0003}
+.played{text-align:center;font-size:.8rem}.played.win .card{box-shadow:0 0 0 4px var(--straw)}
+.hint{text-align:center;color:var(--mute);margin:6px 0;min-height:1.4em}
+.banner{text-align:center;font:800 1.2rem Fraunces,serif;color:var(--straw);min-height:1.6em}
+.bidbar{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;padding:8px}
+.bidbar button{min-width:52px;font-size:1.2rem}
+/* cartas */
+.card{width:64px;height:92px;border-radius:9px;background:var(--paper);color:#1b1b1b;position:relative;box-shadow:0 2px 6px #0007;font:800 1.15rem Fraunces,serif;user-select:none;flex:none}
+.card.red{color:var(--barn)}
+.card .c{position:absolute;top:5px;left:7px;line-height:1}
+.card .c i{display:block;font-style:normal;font-size:.95rem}
+.card .big{position:absolute;inset:0;display:grid;place-items:center;font-size:2rem;opacity:.9;padding-top:14px}
+.card.trump{background:linear-gradient(160deg,#fff6d6,#f1d98a)}
+.hand{display:flex;justify-content:center;padding:22px 8px 18px;overflow-x:auto}
+.hand .card{margin-left:-26px;transition:transform .15s;cursor:pointer;width:72px;height:104px}
+.hand .card:first-child{margin-left:0}
+.hand .card.ok{transform:translateY(-12px)}
+.hand .card.no{filter:brightness(.55);cursor:default}
+.hand .card.ok:active{transform:translateY(-26px)}
+/* tabelas / overlay */
+table{width:100%;border-collapse:collapse;font-size:.9rem}
+th,td{padding:6px 8px;text-align:center;border-bottom:1px solid #ffffff1a}
+td.hit{color:var(--straw);font-weight:700}
+.scroll{max-height:55vh;overflow:auto;margin:10px 0}
+.overlay{position:fixed;inset:0;background:#000a;display:grid;place-items:center;padding:16px;z-index:5}
+.panel{background:var(--felt2);border:2px solid var(--straw);border-radius:20px;padding:18px;width:100%;max-width:560px}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--barn);padding:10px 16px;border-radius:12px;z-index:9;display:none}
+</style></head><body>
+
+<section id="auth" class="screen">
+  <h1>Farmer's<br>Bridge</h1><p style="color:var(--mute)">Preveja suas vazas. Acerte o número exato.</p>
+  <input id="u" placeholder="Nome de jogador" autocomplete="username">
+  <input id="p" type="password" placeholder="Senha" autocomplete="current-password">
+  <div class="err" id="autherr"></div>
+  <div class="row"><button onclick="doAuth('login')">Entrar</button><button class="sec" onclick="doAuth('register')">Criar conta</button></div>
+</section>
+
+<section id="menu" class="screen">
+  <h2>Olá, <span id="who"></span></h2>
+  <button class="big" onclick="show('create')">Criar sala</button>
+  <button class="big sec" onclick="show('join')">Entrar com código</button>
+  <button class="sec" onclick="logout()">Sair da conta</button>
+</section>
+
+<section id="create" class="screen">
+  <h2>Quantos jogadores?</h2>
+  <button class="big" onclick="socket.emit('create',4)">4 jogadores</button>
+  <button class="big" onclick="socket.emit('create',5)">5 jogadores</button>
+  <button class="big" onclick="socket.emit('create',6)">6 jogadores</button>
+  <button class="sec" onclick="show('menu')">Voltar</button>
+</section>
+
+<section id="join" class="screen">
+  <h2>Código da sala</h2>
+  <input id="code" class="code-in" maxlength="4" placeholder="ABCD">
+  <button class="big" onclick="socket.emit('join',$('#code').value)">Entrar na sala</button>
+  <button class="sec" onclick="show('menu')">Voltar</button>
+</section>
+
+<section id="lobby" class="screen">
+  <h2>Sala de espera</h2><div>Passe este código aos amigos:</div>
+  <div class="codebox" id="lcode"></div>
+  <ul class="plist" id="lplayers"></ul>
+  <button class="big" id="startbtn" onclick="socket.emit('start')">Iniciar partida</button>
+  <button class="sec" onclick="socket.emit('leave')">Sair da sala</button>
+</section>
+
+<section id="game" class="screen">
+  <div class="top"><span id="info"></span><span class="timer" id="timer"></span></div>
+  <div class="seats" id="seats"></div>
+  <div class="banner" id="banner"></div>
+  <div class="table" id="table"></div>
+  <div class="hint" id="hint"></div>
+  <div class="bidbar" id="bidbar"></div>
+  <div class="hand" id="hand"></div>
+  <div id="ov"></div>
+</section>
+<div class="toast" id="toast"></div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+const $=s=>document.querySelector(s);
+const SYM={O:'♦',P:'♣',C:'♥',E:'♠'}, ORDER=['E','C','P','O'];
+const RANKS=['2','3','4','5','6','8','9','10','J','Q','K','7','A'];
+let token=localStorage.t, me=localStorage.u, socket, S=null, dl=0;
+
+function show(id){document.querySelectorAll('.screen').forEach(e=>e.classList.toggle('on',e.id===id))}
+function toast(m){const t=$('#toast');t.textContent=m;t.style.display='block';clearTimeout(t._t);t._t=setTimeout(()=>t.style.display='none',2800)}
+async function doAuth(kind){
+  const r=await fetch('/api/'+kind,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:$('#u').value,password:$('#p').value})});
+  const d=await r.json(); if(!r.ok){$('#autherr').textContent=d.error;return}
+  token=localStorage.t=d.token; me=localStorage.u=d.username; connect();
+}
+function logout(){localStorage.clear();location.reload()}
+function connect(){
+  socket=io({auth:{token}});
+  socket.on('connect_error',()=>{localStorage.clear();show('auth')});
+  socket.on('state',s=>{S=s;dl=Date.now()+s.left;render()});
+  socket.on('left',()=>{S=null;render()});
+  socket.on('err',toast);
+  $('#who').textContent=me; render();
+}
+function card(c,cls=''){
+  const s=c.slice(-1),r=c.slice(0,-1),red=s==='O'||s==='C';
+  return `<div class="card ${red?'red':''} ${s==='O'?'trump':''} ${cls}" data-c="${c}"><div class="c">${r}<i>${SYM[s]}</i></div><div class="big">${SYM[s]}</div></div>`;
+}
+function render(){
+  if(!token){show('auth');return}
+  if(!S){show('menu');return}
+  if(S.phase==='lobby'){
+    show('lobby'); $('#lcode').textContent=S.code;
+    $('#lplayers').innerHTML=S.players.map(p=>`<li>${p.name}<span>${p.name===S.host?'anfitrião':''}</span></li>`).join('')+
+      Array(S.size-S.players.length).fill('<li class="off">aguardando jogador…</li>').join('');
+    const b=$('#startbtn'); b.disabled=!(S.host===me&&S.players.length===S.size);
+    b.textContent=S.host!==me?'Aguardando o anfitrião':S.players.length<S.size?`Faltam ${S.size-S.players.length} jogador(es)`:'Iniciar partida';
+    return;
+  }
+  show('game'); const my=S.you, turn=S.turn;
+  $('#info').innerHTML=`Sala ${S.code} · Rodada ${S.roundNo}/${S.totalRounds} · ${S.cards} carta(s) · Trunfo ♦`;
+  $('#seats').innerHTML=S.players.map((p,i)=>`<div class="seat ${i===turn&&!['roundEnd','over'].includes(S.phase)?'turn':''} ${p.on?'':'off'}">
+    <b>${p.name}${i===S.dealer?' 🃏':''}</b><small>${S.bids[i]===null?'—':'pediu '+S.bids[i]} · levou ${S.won[i]}</small><br><small>${S.scores[i]} pts</small></div>`).join('');
+  $('#table').innerHTML=S.trick.map(t=>`<div class="played ${S.winner===t.p?'win':''}">${card(t.card)}<div>${S.players[t.p].name}</div></div>`).join('')||'<span style="color:var(--mute)">Mesa vazia</span>';
+  $('#banner').textContent=S.phase==='trickEnd'?`${S.players[S.winner].name} levou a vaza!`:'';
+  // palpites
+  const myTurn=turn===my;
+  $('#bidbar').innerHTML=S.phase==='bidding'&&myTurn?Array.from({length:S.cards+1},(_,n)=>`<button onclick="socket.emit('bid',${n})">${n}</button>`).join(''):'';
+  $('#hint').textContent=S.phase==='bidding'?(myTurn?'Quantas vazas você vai levar?':`${S.players[turn].name} está palpitando…`)
+    :S.phase==='playing'?(myTurn?'Sua vez: escolha uma carta':`Vez de ${S.players[turn].name}`):'';
+  // mão
+  const hand=S.hand.slice().sort((a,b)=>ORDER.indexOf(a.slice(-1))-ORDER.indexOf(b.slice(-1))||RANKS.indexOf(a.slice(0,-1))-RANKS.indexOf(b.slice(0,-1)));
+  $('#hand').innerHTML=hand.map(c=>card(c,S.phase==='playing'&&myTurn?(S.legal.includes(c)?'ok':'no'):'')).join('');
+  document.querySelectorAll('.hand .card.ok').forEach(e=>e.onclick=()=>socket.emit('play',e.dataset.c));
+  // overlays
+  let ov='';
+  if(S.phase==='roundEnd'){const h=S.history[S.history.length-1];
+    ov=`<div class="overlay"><div class="panel"><h2>Fim da rodada ${S.roundNo}</h2><table><tr><th></th><th>Pediu</th><th>Levou</th><th>Pontos</th><th>Total</th></tr>
+    ${S.players.map((p,i)=>`<tr><td>${p.name}</td><td>${h.bids[i]}</td><td>${h.won[i]}</td><td class="${h.bids[i]===h.won[i]?'hit':''}">+${h.pts[i]}</td><td>${h.total[i]}</td></tr>`).join('')}</table>
+    <p class="hint">Próxima rodada em instantes…</p></div></div>`}
+  if(S.phase==='over'){const best=Math.max(...S.scores),voted=S.rematch.includes(me);
+    ov=`<div class="overlay"><div class="panel"><h2>Fim de jogo 🏆 ${S.players.filter((p,i)=>S.scores[i]===best).map(p=>p.name).join(', ')}</h2>
+    <div class="scroll"><table><tr><th>Rod.</th>${S.players.map(p=>`<th>${p.name}</th>`).join('')}</tr>
+    ${S.history.map((h,r)=>`<tr><td>${h.cards}</td>${h.pts.map((p,i)=>`<td class="${h.bids[i]===h.won[i]?'hit':''}">${p}</td>`).join('')}</tr>`).join('')}
+    <tr><th>Total</th>${S.scores.map(s=>`<th>${s}</th>`).join('')}</tr></table></div>
+    <div class="row"><button class="sec" onclick="socket.emit('leave')">Voltar ao menu</button>
+    <button ${voted?'disabled':''} onclick="socket.emit('rematch')">${voted?'Aguardando…':'Jogar novamente'} (${S.rematch.length}/${S.size})</button></div></div></div>`}
+  $('#ov').innerHTML=ov;
+}
+setInterval(()=>{const t=$('#timer');if(!S||!dl||['over','lobby'].includes(S.phase)||S.phase==='roundEnd'||S.phase==='trickEnd'){t.textContent='';return}
+  const s=Math.max(0,Math.ceil((dl-Date.now())/1000));t.textContent=s+'s';t.classList.toggle('low',s<=10)},250);
+if(token){connect()}else show('auth');
+</script></body></html>
